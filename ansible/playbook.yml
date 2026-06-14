@@ -1,0 +1,46 @@
+---
+- name: Configure web server
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+          - curl
+        state: present
+        update_cache: true
+
+    - name: Add user to docker group
+      user:
+        name: rombo
+        groups: docker
+        append: true
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create app directory
+      file:
+        path: /home/rombo/app
+        state: directory
+        owner: rombo
+        group: rombo
+
+    - name: Copy docker-compose.yml to server
+      copy:
+        src: ../docker-compose.yml
+        dest: /home/rombo/app/docker-compose.yml
+        owner: rombo
+        group: rombo
+
+    - name: Start application
+      shell: docker compose up -d
+      args:
+        chdir: /home/rombo/app
+      become_user: rombo
